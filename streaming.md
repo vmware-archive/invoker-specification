@@ -141,6 +141,8 @@ message OutputFrame {
 
 The ordering guarantees relevant to `OutputFrames` are the following: if a function emits two data structures A and B on its j-th output stream, and A is emitted before B, then an invoker MUST send the serialized representation of A before the representation of B back to the streaming processor.
 
+[//]: # (Comment: The following section also appears in request-reply.md)
+
 ## Supported MIME Types
 An invoker SHOULD support the following MIME types, both when dealing with receiving data and when asked to serialize data back to the streaming processor:
 * `text/plain`: when receiving data tagged with this content type and a function argument expects a "string", then an invoker MUST be capable of fulfilling that value. Conversely, when asked to produce that content type and receiving a "string" from the function, an invoker MUST be able to serialize the string using that MIME type.
