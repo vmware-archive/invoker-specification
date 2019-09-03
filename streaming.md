@@ -1,4 +1,4 @@
-# Streaming
+# Streaming Interaction Model Specification
 When running in streaming mode, a function invoker MUST behave as a gRPC server and answer to the following rpc (defined by its [full protobuf definition](riff-rpc.proto)):
 ```
 service Riff {
@@ -8,7 +8,7 @@ service Riff {
 
 That streaming rpc will be invoked by a *streaming processor* whose responsibility is to send (streaming) input parameters to the invoker, as well as forward back the (streaming) output parameters that it receives from the invoker. Where those input parameters come from, where the output parameters end up or when the streaming processor decides to trigger an rpc (slicing the input streams into *windows*) is entirely the responsibility of the streaming processor and is beyond the scope of this document.
 
-Because gRPC allows only one input parameter and one output parameter in an rpc definition, it is likely that a streaming processor will *multiplex* input parameters and an *de-multiplex* output parameters that it receives back. Conversely, it will be the responsibility of the invoker to *de-multiplex* the input parameters and *multiplex* the return parameters back.
+Because gRPC allows only one input parameter and one output parameter in an rpc definition, it is likely that a streaming processor will *multiplex* input parameters and *de-multiplex* output parameters that it receives back. Conversely, it will be the responsibility of the invoker to *de-multiplex* the input parameters and *multiplex* the return parameters back.
 
 ![](img/mux-demux.png)
 
@@ -79,8 +79,7 @@ message InputFrame {
 The role of the `StartFrame` is to carry information to the invoker that is relevant *per-invocation*.
 Such inforation is made of:
 
-expectedContentTypes
-~ a list of N strings, where N is the number of output parameters of the function. Each string is a comma separated list of MIME types and indicates, in order, the preference of the streaming processor when it comes to receiving output data: if the i-th string is equal to `MIME-Type1, MIME-Type2` then every `OutputFrame` pertaining to the i-th output (that is, where `resultIndex == i`) MUST have its `contentType` field set to a MIME type that is either `MIME-type1` or `MIME-type2` (or a compatible subtype thereof).
+* *expectedContentTypes*: a list of N strings, where N is the number of output parameters of the function. Each string is a comma separated list of MIME types and indicates, in order, the preference of the streaming processor when it comes to receiving output data: if the i-th string is equal to `MIME-Type1, MIME-Type2` then every `OutputFrame` pertaining to the i-th output (that is, where `resultIndex == i`) MUST have its `contentType` field set to a MIME type that is either `MIME-type1` or `MIME-type2` (or a compatible subtype thereof).
 
 An invoker MAY decide to wait until it receives the `StartFrame` before loading the function. In particular, because the size of the `expectedContentTypes` field is equal to the output arity of the function, it MAY be used by the invoker to lookup the function in cases where *e.g.* overloading is supported by the target runtime, or where strict function arity matching is required.
 
