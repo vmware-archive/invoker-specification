@@ -14,9 +14,6 @@ Because gRPC allows only one input parameter and one output parameter in an rpc 
 
 The streaming protocol relies heavily on the concept of *content-type*: a piece of information (hereafter *headers*) that instructs how to interpret a *payload*, made of a series of bytes. Such a content-type may be used to depict input data, or to instruct a function to produce output data in a certain fashion (see `expectedContentTypes` later in this document)
 
-## Relationship to Function
-An invoker is a piece of executable code that is responsible for a single function. How that function is located (*e.g.* location of its binary, name of the function, *etc.*) is beyond this specification. Examples of means by which an invoker MAY locate a function are process arguments or environment variables.
-
 ## Lifecycle
 When a streaming invoker starts, it MUST start a gRPC server on port 8081 able to satisfy the `Invoke()` rpc defined above. It MAY load the function early although an invoker MAY also assume that user functions may be poorly written and may maintain (mutable) state when they shouldn't, and hence MAY decide to re-load the function at each rpc invocation.
 
