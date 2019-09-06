@@ -1,7 +1,7 @@
 # Request / Reply Interaction Model
 When running in request / reply mode, a function invoker MUST behave as an http server and invoke its function in a synchronous manner.
 
-That server can be invoked by any http client that adheres to the specification below. Because basic http is inherently request / reply oriented, this interaction model MUST only be used to drive function that accept exactly one parameter and produce exactly one result: functions that either accept several parameters or produce several results only make sense in the context of asynchronous [streaming](streaming.md), because if parameters (respectively results) were accepted (respectively produced) in a synchronous manner, then they could be regrouped in a compound parameter (respectively result).
+That server can be invoked by any http client that adheres to the specification below. Because basic http is inherently request / reply oriented, this interaction model MUST only be used to drive functions that accept exactly one parameter and produce exactly one result: functions that either accept several parameters or produce several results only make sense in the context of asynchronous [streaming](streaming.md), because if parameters (respectively results) were accepted (respectively produced) in a synchronous manner, then they could be regrouped in a compound parameter (respectively result).
 
 
 
@@ -45,13 +45,13 @@ Additionally, when dealing with "byte arrays" in the function signature, an invo
 
 In addition, an invoker SHOULD provide a way for the function to extend the set of supported MIME types, *e.g.* by providing an extension mechanism to register additional "handlers". The specific details of such a mechanism are beyond the scope of this document.
 
-## Support for Streaming Functions
+## <a name="support-for-streaming-functions"></a>Support for Streaming Functions
 Some subset of streaming functions may be made invocable using the request / reply invocation model. One *way* to achieve that using buildpacks is detailed in the [packaging](packaging.md) document, but the *semantics* of the conversion are explained here and MUST be honored by any invoker that claims to support invocation of streaming functions using the request / reply interaction model.
 
 To be invocable using this interaction model, a streaming function MUST accept exactly one streaming input and produce exactly one streaming output. Upon reception of an incoming http request satisfying the prerequisites exposed above, a streaming rpc invocation MUST be made with the following attributes:
 * A `StartFrame` MUST be sent with a list of `expectedContentTypes` of size 1, whose value is the value of the `Accept` header of the http request.
 * An `InputFrame` MUST be sent with its `payload` set as the body of the http request, its `contentType` field set as the value of the `Content-Type` http header. Other http headers MAY be forwarded using the `headers` field of the `InputFrame`. The `Content-Type` and `Accept` http headers MUST NOT be forwarded this way.
-* The input stream of the invocation must then be completed
+* The input stream of the invocation must then be [completed](glossary.md#stream-completion)
 * Upon reception of a single `OutputFrame` followed by the completion of the output stream, the contents of the `OutputFrame` MUST be forwarded as an http response as such: its `payload` MUST form the response body, its `contentType` MUST be set as the http `Content-Type` header and some or all of its additional `headers` MAY be copied to http headers. Although it should not be present, a custom `header` whose name could clash with the http `Content-Type` header MUST NOT be forwarded back.
 * Any reception of an `OutputFrame` before the input stream has been completed, or any reception of an additional `OutputFrame` after the first (*i.e.* absence of completion signal on the output stream) MUST result in an http 5xx error condition.
 * Any reception of an error signal in the output stream MUST result in an http 5xx error condition.
