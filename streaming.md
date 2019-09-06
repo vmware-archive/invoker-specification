@@ -160,3 +160,8 @@ The streaming protocol described in this document is built on top of the gRPC pr
 * When a function emits the (normal) stream completion signal on one of its several output streams, an invoker MUST not forward that signal back to the main output stream, unless it is the last sub-stream to complete. If the completion signal happens on the last sub-stream to complete, then the invoker MUST trigger the completion of the main output stream.
 * When a function emits an error completion signal on one of its several output streams, an invoker MUST immediately forward that signal back to the main output stream.
 
+## <a name="support-for-request-reply-functions"></a>Support for Request Reply Functions
+A streaming invoker MAY support request / reply functions (that is, functions that accept a single value and synchronously produce a single result) by adhering to the following semantics:
+* the function MUST be exposed as if it had a single input stream and a single output stream
+* each value on the output stream MUST be obtained by applying the synchronous function to each value on the input stream. That is to say, the streaming function MUST apply the [map()](http://reactivex.io/documentation/operators/map.html) operator involving the original function.
+* a consequence of the above is that, should the synchronous function produce an error, the output stream MUST terminate with an error, forcing the client to trigger a new invocation if it wants to compute additional values.
