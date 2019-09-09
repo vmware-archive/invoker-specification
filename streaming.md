@@ -73,8 +73,8 @@ message InputFrame {
 ```
 
 ### StartFrame
-The role of the `StartFrame` is to carry information to the invoker that is relevant *per-invocation*.
-Such inforation is made of:
+The role of the `StartFrame` is to carry information to the invoker that is relevant *per invocation*.
+Such information is made of:
 
 * *expectedContentTypes*: a list of N strings, where N is the number of output parameters of the function. Each string is a comma separated list of MIME types and indicates, in order, the preference of the streaming processor when it comes to receiving output data: if the i-th string is equal to `MIME-Type1, MIME-Type2` then every `OutputFrame` pertaining to the i-th output (that is, where `resultIndex == i`) MUST have its `contentType` field set to a MIME type that is either `MIME-type1` or `MIME-type2` (or a compatible subtype thereof).
 
