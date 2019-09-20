@@ -6,7 +6,7 @@ That server can be invoked by any http client that adheres to the specification 
 
 
 ## Lifecycle
-When a request / reply invoker starts, it MUST start an http/2 server listening on port 8080 and accept POST requests on `/`. It MAY load the function early although an invoker MAY also assume that user functions may be poorly written and may maintain (mutable) state when they shouldn't, and hence MAY decide to re-load the function at each invocation.
+When a request / reply invoker starts, it MUST start an http/2 server listening on the port defined by the `PORT` environment variable (it MUST fallback on port 8080 if that variable is not definied) and accept POST requests on `/`. It MAY load the function early although an invoker MAY also assume that user functions may be poorly written and may maintain (mutable) state when they shouldn't, and hence MAY decide to re-load the function at each invocation.
 
 ## Invocation
 Invocations of the invoker by an http client MAY happen concurrently and the invoker MUST maintain isolation of state inside the function as much as possible given the target runtime. Each http request MUST trigger exactly one invocation of the function (minus error cases).
