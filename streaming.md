@@ -15,7 +15,7 @@ Because gRPC allows only one input parameter and one output parameter in an rpc 
 The streaming protocol relies heavily on the concept of *content-type*: a piece of information (hereafter *headers*) that instructs how to interpret a *payload*, made of a series of bytes. Such a content-type may be used to depict input data, or to instruct a function to produce output data in a certain fashion (see `expectedContentTypes` later in this document)
 
 ## Lifecycle
-When a streaming invoker starts, it MUST start a gRPC server on port 8081 able to satisfy the `Invoke()` rpc defined above. It MAY load the function early although an invoker MAY also assume that user functions may be poorly written and may maintain (mutable) state when they shouldn't, and hence MAY decide to re-load the function at each rpc invocation.
+When a streaming invoker starts, it MUST start a gRPC server on the port defined by the `GRPC_PORT` environment variable (it MUST fallback to using 8081 if that variable is not defined). That server MUST be able to satisfy the `Invoke()` rpc defined above. It MAY load the function early although an invoker MAY also assume that user functions may be poorly written and may maintain (mutable) state when they shouldn't, and hence MAY decide to re-load the function at each rpc invocation.
 
 As a general rule, the unit of interaction is the rpc invocation. What that means is that any state accumulated for a given invocation SHOULD be cleared as soon as the invocation ends, and that two invocations MUST not share state.
 
