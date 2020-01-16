@@ -54,6 +54,12 @@ message InputSignal {
 message StartFrame {
     // The ContentTypes that an invocation is allowed to produce for each output parameter
     repeated string expectedContentTypes = 1;
+
+    // The logical names for input arguments
+    repeated string inputNames = 2;
+
+    // The logical names for output arguments
+    repeated string outputNames = 3;
 }
 
 // Contains actual invocation data, as input events.
@@ -77,8 +83,11 @@ The role of the `StartFrame` is to carry information to the invoker that is rele
 Such information is made of:
 
 * *expectedContentTypes*: a list of N strings, where N is the number of output parameters of the function. Each string is a comma separated list of MIME types and indicates, in order, the preference of the streaming processor when it comes to receiving output data: if the i-th string is equal to `MIME-Type1, MIME-Type2` then every `OutputFrame` pertaining to the i-th output (that is, where `resultIndex == i`) MUST have its `contentType` field set to a MIME type that is either `MIME-type1` or `MIME-type2` (or a compatible subtype thereof).
+* *inputNames*: a list of M strings, where M is the number of input parameters of the function. Each string is a name that the invoker MAY choose to expose to the function. These names are mapped to input streams.
+* *outputNames*: a list of N strings (same N as above). Each string is a name that the invoker MAY choose to expose to the function. These names are mapped to output streams.
 
-An invoker MAY decide to wait until it receives the `StartFrame` before loading the function. In particular, because the size of the `expectedContentTypes` field is equal to the output arity of the function, it MAY be used by the invoker to lookup the function in cases where *e.g.* overloading is supported by the target runtime, or where strict function arity matching is required.
+An invoker MAY decide to wait until it receives the `StartFrame` before loading the function. 
+In particular, the size of the `expectedContentTypes` field (as well as the `outputNames` field) is equal to the output arity of the function. The same is true for the `inputNames` field and the input arity. These MAY be used by the invoker to look up the function in cases where *e.g.* overloading is supported by the target runtime, or where strict function arity matching is required.
 
 ### InputFrame
 `InputFrames` represent incoming data to the function. Upon reception of an `InputFrame`, an invoker
