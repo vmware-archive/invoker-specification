@@ -11,14 +11,16 @@ import (
 func main() {
 	suites := []*framework.Suite{&framework.Request_reply, &framework.Streaming}
 
+	configFile := ""
 	config := framework.Config{}
-	if _, err := toml.DecodeFile("tck.toml", &config); err != nil {
-		panic(err)
-	}
-	config.Listener = &consoleListener{}
-
 	cmd := &cobra.Command{
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if _, err := toml.DecodeFile(configFile, &config); err != nil {
+				return err
+			}
+
+			config.Listener = &consoleListener{}
+
 			runner := framework.NewRunner(&config, suites)
 			runner.Run()
 			return nil
@@ -26,6 +28,10 @@ func main() {
 	}
 	cmd.Flags().StringSliceVarP(&config.FocusedSuites, "focused-suites", "s", nil, "names of suites to focus")
 	cmd.Flags().StringSliceVarP(&config.FocusedTests, "focused-tests", "t", nil, "names of tests to focus")
+	cmd.Flags().StringVarP(&configFile, "config", "c", "tck.toml", "path to config file")
+
+
+	//config.FocusedTests = []string {"rr-0001"}
 	cmd.Execute()
 
 }

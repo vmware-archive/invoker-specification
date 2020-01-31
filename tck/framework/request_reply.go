@@ -21,50 +21,54 @@ var Request_reply = Suite{
 	Port:        8080,
 	Cases: []*Testcase{
 		/*
-		{
-			Name:           "rr-0000",
-			Description:    "MUST start an http/2 server listening on $PORT",
-			Image:          "upper",
-			SetUpContainer: setUpContainerUsingPortEnvVar,
-			TearDownContainer: func(container *Container, runner *Runner) {
+			{
+				Name:           "rr-0000",
+				Description:    "MUST start an http/2 server listening on $PORT",
+				Image:          "upper",
+				SetUpContainer: setUpContainerUsingPortEnvVar,
+				TearDownContainer: func(container *Container, runner *Runner) {
 
+				},
+				T: func(port int) {
+					req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader("hello"))
+					if err != nil {
+						panic(err)
+					}
+					req.Header.Set("Content-Type", "text/plain")
+					response, err := http.DefaultClient.Do(req)
+					if err != nil {
+						panic(err)
+					}
+					if response.StatusCode != http.StatusOK {
+						panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
+					}
+				},
 			},
-			T: func(port int) {
-				req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader("hello"))
-				if err != nil {
-					panic(err)
-				}
-				req.Header.Set("Content-Type", "text/plain")
-				response, err := http.DefaultClient.Do(req)
-				if err != nil {
-					panic(err)
-				}
-				if response.StatusCode != http.StatusOK {
-					panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
-				}
-			},
-		},
 		*/
 		{
 			Name:        "rr-0001",
 			Description: "MUST NOT reply on paths other than / or methods other than POST",
 			Image:       "upper",
 			T: func(port int) {
-				response, err := http.Post(fmt.Sprintf("http://localhost:%d/bogus", port), "text/plain", strings.NewReader("hello"))
+				req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/bogus", port), strings.NewReader("hello"))
 				if err != nil {
 					panic(err)
 				}
+				req.Header.Set("Content-Type", "text/plain")
+				req.Header.Set("Accept", "text/plain")
+				response, err := http.DefaultClient.Do(req)
 				if result, err := ioutil.ReadAll(response.Body); err != nil {
 					panic(err)
 				} else if "HELLO" == string(result) {
 					panic("The function function should only be exposed on /")
 				}
 
-				req, err := http.NewRequest("PUT", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader("hello"))
+				req, err = http.NewRequest("PUT", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader("hello"))
 				if err != nil {
 					panic(err)
 				}
 				req.Header.Set("Content-Type", "text/plain")
+				req.Header.Set("Accept", "text/plain")
 				response, err = http.DefaultClient.Do(req)
 				if err != nil {
 					panic(err)
@@ -72,7 +76,7 @@ var Request_reply = Suite{
 				if result, err := ioutil.ReadAll(response.Body); err != nil {
 					panic(err)
 				} else if "HELLO" == string(result) {
-					panic("The function function should only be exposed on /")
+					panic("The function should only be exposed on /")
 				}
 			},
 		},
@@ -199,6 +203,135 @@ var Request_reply = Suite{
 				}
 				if response.StatusCode != http.StatusNotAcceptable {
 					panic(fmt.Sprintf("Expected 406 http code, got %d", response.StatusCode))
+				}
+			},
+		},
+		{
+			Name:        "rr-0006",
+			Description: "MUST survive invocation errors",
+			Optional:    true,
+			Image:       "divider",
+			T: func(port int) {
+				// Make sure function works first
+				req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader(`2`))
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("Accept", "application/json")
+				response, err := http.DefaultClient.Do(req)
+				if err != nil {
+					panic(err)
+				}
+				if result, err := ioutil.ReadAll(response.Body); err != nil {
+					panic(err)
+				} else if response.StatusCode != http.StatusOK {
+					panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
+				} else if `50` != string(result) {
+					panic(`Expected result as application/json 50, got ` + string(result))
+				}
+				// Trigger an invocation error
+				req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader(`0`))
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("Accept", "application/json")
+				response, err = http.DefaultClient.Do(req)
+				if err != nil {
+					panic(err)
+				}
+				if response.StatusCode != http.StatusInternalServerError {
+					panic(fmt.Sprintf(`Expected http status 500, got %d`, response.StatusCode))
+				}
+				// Verify error above did not crash the whole process
+				req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader(`4`))
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("Accept", "application/json")
+				response, err = http.DefaultClient.Do(req)
+				if err != nil {
+					panic(err)
+				}
+				if result, err := ioutil.ReadAll(response.Body); err != nil {
+					panic(err)
+				} else if response.StatusCode != http.StatusOK {
+					panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
+				} else if `25` != string(result) {
+					panic(`Expected result as application/json 25, got ` + string(result))
+				}
+			},
+		},
+		{
+			Name:        "rr-0007",
+			Description: "MAY support functions that maintain state",
+			Optional:    true,
+			Image:       "counter",
+			T: func(port int) {
+				panic("TODO")
+			},
+		},
+		{
+			Name:        "rr-0008",
+			Description: "MUST assume application/octet-stream when no Content-Type",
+			Image:       "md5",
+			T: func(port int) {
+				// Make sure function works first
+				req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader("hello"))
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Set("Accept", "application/json")
+				response, err := http.DefaultClient.Do(req)
+				if err != nil {
+					panic(err)
+				}
+				if result, err := ioutil.ReadAll(response.Body); err != nil {
+					panic(err)
+				} else if response.StatusCode != http.StatusOK {
+					panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
+				} else if `"5d41402abc4b2a76b9719d911017c592"` != string(result) {
+					panic(`Expected result as application/json "5d41402abc4b2a76b9719d911017c592", got ` + string(result))
+				}
+			},
+		},
+		{
+			Name:        "rr-0009",
+			Description: "MUST assume Accept: */* when no Accept set",
+			Image:       "upper",
+			T: func(port int) {
+				// Make sure function works first
+				req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader("hello"))
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Set("Content-Type", "text/plain")
+				response, err := http.DefaultClient.Do(req)
+				if err != nil {
+					panic(err)
+				}
+				if result, err := ioutil.ReadAll(response.Body); err != nil {
+					panic(err)
+				} else if response.StatusCode != http.StatusOK {
+					panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
+				} else if hs := response.Header[http.CanonicalHeaderKey("Content-Type")]; len(hs) == 1 {
+					mediaType, _, err := mime.ParseMediaType(hs[0])
+					if err != nil {
+						panic(fmt.Sprintf("Error parsing Content-Type header %v: %v", hs[0], err))
+					}
+					if mediaType == "text/plain" && string(result) != "HELLO" {
+						panic("Advertised response as text/plain but did not get expected HELLO")
+					} else if mediaType == "application/json" && string(result) != `"HELLO"`{
+						panic(`Advertised response as application/json but did not get expected "HELLO"`)
+					} else if mediaType == "application/octet-stream" && string(result) != "HELLO" {
+						panic(`Advertised response as application/octet-stream but did not get expected HELLO`)
+					} else {
+						// Can't be sure this is wrong. Simply return quietly
+					}
+				} else {
+					panic("Response Content-Type should have been set to a single value")
 				}
 			},
 		},

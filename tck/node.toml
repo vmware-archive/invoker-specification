@@ -1,0 +1,5 @@
+[images]
+upper   = "docker.io/ericbottard/uppercase-node"
+divider = "docker.io/ericbottard/divider-node"
+counter = "foo"
+md5     = "docker.io/ericbottard/md5-node"

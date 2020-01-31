@@ -1,0 +1,5 @@
+[images]
+upper   = "docker.io/ericbottard/upper-java"
+divider = "docker.io/ericbottard/divider-java"
+counter = "foo"
+md5     = "bar"

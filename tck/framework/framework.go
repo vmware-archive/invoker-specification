@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -143,6 +144,7 @@ func checkTest(t *Testcase, names map[string]interface{}) {
 	}
 }
 
+// A suite should run if a) there are no focused suites or b) the suite is focused or c) there are focused tests and they belong to that suite
 func (r *Runner) suiteShouldRun(s *Suite) bool {
 	if len(r.config.FocusedSuites) == 0 {
 		return true
@@ -153,17 +155,22 @@ func (r *Runner) suiteShouldRun(s *Suite) bool {
 		}
 	}
 	for _, t := range s.Cases {
-		if r.testShouldRun(t) {
+		if r.isTestFocused(t) {
 			return true
 		}
 	}
 	return false
 }
 
+// A test should run (assuming its suite has already been greenlit) if a) there are no focused tests or b) it is explicitly focused
 func (r *Runner) testShouldRun(t *Testcase) bool {
 	if len(r.config.FocusedTests) == 0 {
 		return true
 	}
+	return r.isTestFocused(t)
+}
+
+func (r *Runner) isTestFocused(t *Testcase) bool {
 	for _, ft := range r.config.FocusedTests {
 		if ft == t.Name {
 			return true
@@ -237,17 +244,17 @@ func (r *Runner) defaultSetUpContainer(image string, t *Testcase) (*Container, e
 		return nil, err
 	}
 	for i := 0; i < 10; i = i + 1 {
-		_, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", hostPort))
+		req, _ := http.NewRequest("HEAD", fmt.Sprintf("http://localhost:%d/", hostPort), nil)
+		_, err := http.DefaultClient.Do(req)
 		if err == nil {
 			break
 		}
-		time.Sleep(10 * time.Millisecond * time.Duration(math.Pow(2, float64(i))))
+		//fmt.Printf("%2d Attempting to connect to localhost:%d: %s\n", i, hostPort, err)
+		time.Sleep(20 * time.Millisecond * time.Duration(math.Pow(2, float64(i))))
 	}
 	if err != nil {
 		return nil, err
 	}
-	// TODO: need to sleep some more. Find a more reliable way to diagnose a container as ready
-	time.Sleep(1000 * time.Millisecond)
 
 	return &Container{id: cont.ID, hostPort: hostPort}, nil
 }
