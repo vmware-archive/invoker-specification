@@ -91,10 +91,12 @@ In particular, the size of the `expectedContentTypes` field (as well as the `out
 
 ### InputFrame
 `InputFrames` represent incoming data to the function. Upon reception of an `InputFrame`, an invoker
-1. SHOULD deserialize the *payload* according to the *contentType* field, which MUST be set and represent a concrete MIME type (*i.e.* not a wildcard type). The data structure that corresponds to the result of de-serialization is runtime-specific and is beyond the scope of this specification. To the best extent though, an invoker SHOULD use data structures that are *idiomatic* to the target runtime and pass them to the function if feasible. As an example, if the incoming `contentType` is `application/json` and `payload` contains the bytes of `{"foo": 5}`, then the invoker may use a *map* or a *dictionary* with key `foo`.
-2. MAY use any additional hints carried in the custom `headers` field to decide how to deserialize the incoming data
-3. MAY decide to craft a data structure that embeds the `contentType` field, as well as some or all of the custom `headers` and pass that to the function
-4. MUST forward the result of the deserialization to the i-th input *stream* of the function, where `i` is the value of the `argIndex` field.
+1. MUST deserialize the *payload* according to the *contentType* field, which SHOULD be set and represent a concrete MIME type (*i.e.* not a wildcard type) or default to `application/octet-stream`. The data structure that corresponds to the result of de-serialization is runtime-specific and is beyond the scope of this specification. To the best extent though, an invoker SHOULD use data structures that are *idiomatic* to the target runtime and pass them to the function if feasible. As an example, if the incoming `contentType` is `application/json` and `payload` contains the bytes of `{"foo": 5}`, then the invoker may use a *map* or a *dictionary* with key `foo`.
+2. If the *contentType* is not supported, an invoker MUST craft a gRPC status error of code [InvalidArgument](https://github.com/grpc/grpc/blob/2a7191abe717d3ce33b5fcbfd6bd118367499cde/doc/statuscodes.md#status-codes-and-their-use-in-grpc) and the error message MUST start with `"Invoker: Unsupported Media Type"`. An invoker MAY append error details to that message prefix. These details SHOULD start with punctuation to separate them from the error message prefix.
+3. MUST fail this rpc invocation if it cannot otherwise successfully deserialize data using such a MIME type with a crafted status error of code [Unknown](https://github.com/grpc/grpc/blob/2a7191abe717d3ce33b5fcbfd6bd118367499cde/doc/statuscodes.md#status-codes-and-their-use-in-grpc)
+4. MAY use any additional hints carried in the custom `headers` field to decide how to deserialize the incoming data
+5. MAY decide to craft a data structure that embeds the `contentType` field, as well as some or all of the custom `headers` and pass that to the function
+6. MUST forward the result of the deserialization to the i-th input *stream* of the function, where `i` is the value of the `argIndex` field.
 
 The ordering guarantees relevant to `InputFrames` are the following: given two `InputFrames` A and B whose `argIndex` field are equal, if A is received before B by the invoker, then the invoker MUST forward A before B to the function.
 
@@ -142,11 +144,12 @@ message OutputFrame {
 
 ### OutputFrame
 `OutputFrames` represent data coming out of the function. Upon reception of a result data structure on the j-th output stream of a function, an invoker
-1. MUST serialize the data structure to a series of bytes (hereafter the `OutputFrame payload`) by selecting a MIME type that is compatible with the preference ordered list of MIME types specified in the j-th string of `expectedContentTypes` seen in the [`StartFrame`](#StartFrame). As a consequence, the invoker MUST not send any `OutputFrames` until it has received the `StartFrame`. 
-2. If it cannot successfully serialize data using such a MIME type, then it MUST fail this rpc invocation
-3. Otherwise, it MUST set the value of the `payload` field of the frame to the byte representation of the data, and the `contentType` field to the *concrete* MIME type that was selected for serialization
-4. MUST set the `resultIndex` field of the frame to `j`
-5. MAY set additional custom `headers`.
+1. MUST serialize the data structure to a series of bytes (hereafter the `OutputFrame payload`) by selecting a MIME type that is compatible with the preference ordered list of MIME types specified in the j-th string of `expectedContentTypes` seen in the [`StartFrame`](#StartFrame). As a consequence, the invoker MUST not send any `OutputFrames` until it has received the `StartFrame`.
+2. If such a MIME type is not supported, then it MUST fail this rpc invocation with a crafted status error of code [InvalidArgument](https://github.com/grpc/grpc/blob/2a7191abe717d3ce33b5fcbfd6bd118367499cde/doc/statuscodes.md#status-codes-and-their-use-in-grpc) and the error message MUST start with `"Invoker: Not Acceptable"`. An invoker MAY append error details to that message prefix. These details SHOULD start with punctuation to separate them from the error message prefix.
+3. If it cannot otherwise successfully serialize data using such a MIME type, then it MUST fail this rpc invocation with a crafted status error of code [Unknown](https://github.com/grpc/grpc/blob/2a7191abe717d3ce33b5fcbfd6bd118367499cde/doc/statuscodes.md#status-codes-and-their-use-in-grpc)
+4. Otherwise, it MUST set the value of the `payload` field of the frame to the byte representation of the data, and the `contentType` field to the *concrete* MIME type that was selected for serialization
+5. MUST set the `resultIndex` field of the frame to `j`
+6. MAY set additional custom `headers`.
 
 The ordering guarantees relevant to `OutputFrames` are the following: if a function emits two data structures A and B on its j-th output stream, and A is emitted before B, then an invoker MUST send the serialized representation of A before the representation of B back to the streaming processor.
 
