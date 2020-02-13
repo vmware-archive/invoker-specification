@@ -3,16 +3,19 @@ package framework
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"io/ioutil"
 	"math"
 	"mime"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
 )
 
 var Request_reply = Suite{
@@ -129,7 +132,7 @@ var Request_reply = Suite{
 				} else if response.StatusCode != http.StatusOK {
 					panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
 				} else if `"HELLO"` != string(result) {
-					panic(`Expected result as application/json "HELLO", got ` + string(result))
+					panic(`Expected result as application/json "HELLO" (with quotes), got ` + string(result))
 				} else {
 					hs := response.Header[http.CanonicalHeaderKey("Content-Type")]
 					if len(hs) != 1 {
@@ -270,7 +273,58 @@ var Request_reply = Suite{
 			Optional:    true,
 			Image:       "counter",
 			T: func(port int) {
-				panic("TODO")
+				wg := sync.WaitGroup{}
+				wg.Add(99)
+				errors := make(chan interface{}, 100)
+				f := func(c int, errs chan interface{}) int {
+					req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/", port), strings.NewReader(fmt.Sprintf("%d", c)))
+					if err != nil {
+						panic(err)
+					}
+					req.Header.Set("Content-Type", "application/json")
+					req.Header.Set("Accept", "application/json")
+					response, err := http.DefaultClient.Do(req)
+					if err != nil {
+						errs <- err
+						return -1
+					}
+					if response.StatusCode != http.StatusOK {
+						errs <- fmt.Sprintf("Expected 200 http code, got %d", response.StatusCode)
+						return -1
+					}
+					if result, err := ioutil.ReadAll(response.Body); err != nil {
+						errs <- err
+					} else if s, err := strconv.Atoi(string(result)); err != nil {
+						errs <- err
+					} else {
+						return s
+					}
+					return -1
+				}
+
+				for i := 1; i <= 99; i++ {
+					go func(s int, e chan interface{}) {
+						defer wg.Done()
+						f(s, e)
+					}(i, errors)
+
+				}
+				wg.Wait()
+				select {
+				case e := <-errors:
+					panic(e)
+				default:
+				}
+
+				result := f(100, errors)
+				select {
+				case e := <-errors:
+					panic(e)
+				default:
+				}
+				if result != 100*101/2 {
+					panic(fmt.Sprintf("Expected invocations of counter with values 1..100 to sum up to %v, got %v", 100*101/2, result))
+				}
 			},
 		},
 		{
@@ -293,7 +347,7 @@ var Request_reply = Suite{
 				} else if response.StatusCode != http.StatusOK {
 					panic(fmt.Sprintf(`Expected http status 200, got %d`, response.StatusCode))
 				} else if `"5d41402abc4b2a76b9719d911017c592"` != string(result) {
-					panic(`Expected result as application/json "5d41402abc4b2a76b9719d911017c592", got ` + string(result))
+					panic(`Expected result as application/json "5d41402abc4b2a76b9719d911017c592" (with quotes), got ` + string(result))
 				}
 			},
 		},
@@ -323,7 +377,7 @@ var Request_reply = Suite{
 					}
 					if mediaType == "text/plain" && string(result) != "HELLO" {
 						panic("Advertised response as text/plain but did not get expected HELLO")
-					} else if mediaType == "application/json" && string(result) != `"HELLO"`{
+					} else if mediaType == "application/json" && string(result) != `"HELLO"` {
 						panic(`Advertised response as application/json but did not get expected "HELLO"`)
 					} else if mediaType == "application/octet-stream" && string(result) != "HELLO" {
 						panic(`Advertised response as application/octet-stream but did not get expected HELLO`)

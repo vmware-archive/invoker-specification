@@ -1,2 +1,4 @@
 /tck
+/tck.exe
 *.iml
+/cover.out

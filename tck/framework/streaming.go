@@ -6,7 +6,7 @@ var Streaming = Suite{
 	Port:        8081,
 	Cases: []*Testcase{
 		{
-			Name:"s-0001",
+			Name:        "s-0001",
 			Description: "TODO",
 			Optional:    true,
 			Image:       "upper",
