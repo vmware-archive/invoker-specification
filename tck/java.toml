@@ -1,5 +1,6 @@
 [images]
-upper   = "docker.io/ericbottard/uppercase-java"
-divider = "docker.io/ericbottard/divider-java"
-counter = "docker.io/ericbottard/counter-java"
-md5     = "docker.io/ericbottard/md5-java"
+upper    = "docker.io/ericbottard/uppercase-java"
+divider  = "docker.io/ericbottard/divider-java"
+counter  = "docker.io/ericbottard/counter-java"
+md5      = "docker.io/ericbottard/md5-java"
+repeater = "docker.io/ericbottard/repeater-java"

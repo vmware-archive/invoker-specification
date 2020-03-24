@@ -30,6 +30,7 @@ func main() {
 	}
 	cmd.Flags().StringSliceVarP(&config.FocusedSuites, "focused-suites", "s", nil, "names of suites to focus")
 	cmd.Flags().StringSliceVarP(&config.FocusedTests, "focused-tests", "t", nil, "names of tests to focus")
+	cmd.Flags().BoolVarP(&config.NoPull, "no-pull", "n", false, "don't pull images")
 	cmd.Flags().StringVarP(&configFile, "config", "c", "tck.toml", "path to config file")
 
 	//config.FocusedTests = []string {"rr-0001"}

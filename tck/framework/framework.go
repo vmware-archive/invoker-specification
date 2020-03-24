@@ -39,6 +39,7 @@ type Config struct {
 	FocusedTests  []string
 	FocusedSuites []string
 	Listener      ExecutionListener
+	NoPull        bool
 }
 
 type Runner struct {
@@ -104,6 +105,14 @@ func (r *Runner) Run() {
 	for i, _ := range requiredImages {
 		if r.config.Images[i] == "" {
 			panic(fmt.Sprintf("Missing image for %q in config", i))
+		}
+	}
+
+	if !r.config.NoPull {
+		for i, _ := range requiredImages {
+			if _, err := r.dockerClient.ImagePull(context.Background(), r.config.Images[i], types.ImagePullOptions{}); err != nil {
+				panic(fmt.Sprintf("Error pulling image %q -> %v: %v", i, r.config.Images[i], err))
+			}
 		}
 	}
 
@@ -217,10 +226,6 @@ func (t *Testcase) Run(runner *Runner) {
 }
 
 func (r *Runner) defaultSetUpContainer(image string, t *Testcase) (*Container, error) {
-	_, err := r.dockerClient.ImagePull(context.Background(), image, types.ImagePullOptions{})
-	if err != nil {
-		return nil, err
-	}
 	hostPort, err := getFreePort()
 	if err != nil {
 		return nil, err

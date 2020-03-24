@@ -1,0 +1,5 @@
+[images]
+upper   = "docker.io/ericbottard/uppercase-command"
+divider = "docker.io/ericbottard/divider-command"
+counter = "docker.io/ericbottard/counter-command"
+md5     = "docker.io/ericbottard/md5-command"
