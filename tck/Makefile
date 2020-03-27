@@ -73,6 +73,7 @@ node-samples:
 	pack build --builder $(BUILDER) --path samples/node --env RIFF=true --env RIFF_ARTIFACT=divider.js   $(DOCKER_REPO)/divider-node
 	pack build --builder $(BUILDER) --path samples/node --env RIFF=true --env RIFF_ARTIFACT=md5.js       $(DOCKER_REPO)/md5-node
 	pack build --builder $(BUILDER) --path samples/node --env RIFF=true --env RIFF_ARTIFACT=uppercase.js $(DOCKER_REPO)/uppercase-node
+	pack build --builder $(BUILDER) --path samples/node --env RIFF=true --env RIFF_ARTIFACT=repeater.js	 $(DOCKER_REPO)/repeater-node
 
 .PHONY: command-samples
 command-samples:
