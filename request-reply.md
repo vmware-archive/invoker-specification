@@ -19,8 +19,11 @@ To successfully trigger an invocation, an http request MUST adhere to the follow
 An invoker MUST only consider POST requests on `/` for invocations. Other methods or other paths MUST NOT lead to a function invocation. In those cases, an invoker MAY respond with an error condition or an unrelated successful payload.
 
 An incoming http request SHOULD contain a `Content-Type` header that will be used by the invoker to drive deserialization of the http request *body*. If the http request does not bear such a header, an invoker MUST interpret the body as having an `application/octet-stream` content-type.
+If the incoming http request `Content-Type` header value denotes a textual content type, the header MAY contain a charset attribute, such as: `text/csv;charset=ISO-2022-CN`. In absence of such an attribute for a textual content type, the default charset UTF-8 will be assumed.
 
 An incoming http request SHOULD contain an `Accept` header that will be used by the invoker to drive serialization of the invocation result back to the client. In the absence of such a header, an invoker MUST interpret the client as accepting an `*/*` response.
+If the `Accept` header denotes textual MIME types, their corresponding charsets MAY be specified via the `Accept-Charset` header.
+In absence of such a header, every textual MIME type will be assumed to be encoded with charset UTF-8.
 
 Upon reception of a well formed request, an invoker MUST deserialize the request body according to its `Content-Type` and any hint it can gather from the function. If possible, an invoker SHOULD consider the type accepted by the function signature to drive the deserialization process. If an invoker can't decide how to deserialize the request body, it SHOULD reply with an http 415 error code. If an error happens while deserializing, an invoker MUST reply with a 5xx error code.
 
@@ -29,7 +32,7 @@ At this point, an invoker MUST attempt to invoke the function with the result of
 ## Reply
 Upon successful invocation of the function, an invoker MUST attempt to serialize the result as an http response. What "successful" means depends on the target runtime and the function and its exact specification is beyond the scope of this specification. An invoker SHOULD interpret success / failure in an idiomatic way to the best extent possible though.
 
-In case of success, an invoker MUST select a MIME type according to the semantics of the `Accept` header, as defined in [rfc 2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html) and serialize the function result using that MIME type, and it MUST set the reponse's `Content-Type` header to the selected MIME type. A successful invocation MUST result in a 200 response code. If no MIME type can be selected, an invoker SHOULD respond with an http 406 error code. If an error happens while serializing the result, it must reply with a 5xx error code.
+In case of success, an invoker MUST select a MIME type according to the semantics of the `Accept` and `Accept-Charset` headers, as defined in [rfc 2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html) and serialize the function result using that MIME type and charset, and it MUST set the reponse's `Content-Type` header to the selected MIME type and compatible charset. A successful invocation MUST result in a 200 response code. If no MIME type can be selected, an invoker SHOULD respond with an http 406 error code. If an error happens while serializing the result, it must reply with a 5xx error code.
 
 In case of unsuccessful function invocation, an invoker MUST reply with an http 5xx error code and it MAY provide details (such as a stacktrace) in the body of the http response.
 
